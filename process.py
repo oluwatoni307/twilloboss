@@ -3,6 +3,7 @@ import json
 import base64
 import asyncio
 import websockets
+import requests
 from fastapi import FastAPI, WebSocket, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.websockets import WebSocketDisconnect
@@ -323,6 +324,53 @@ async def initialize_session(openai_ws, call_id: str):
     await openai_ws.send(json.dumps(session_update))
     await send_initial_conversation_item(openai_ws)
     call_prompts.pop(call_id, None)
+
+
+
+class SessionRequest(BaseModel):
+    prompt: str = "you are a student and you want to ask me philosophical questions about life."
+
+@app.post("/session")
+async def session(request: SessionRequest):
+    try:
+        # it should take in instructions as part of the request
+        # Make a POST request to the OpenAI Real-Time Sessions endpoint
+        response = requests.post(
+            "https://api.openai.com/v1/realtime/sessions",
+            headers={
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "gpt-4o-realtime-preview-2024-12-17",
+                "voice": "verse",
+                "instructions":request.prompt
+            },
+        )
+
+        # Check if the request was successful
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Failed to create session: {response.text}"
+            )
+
+        # Parse the JSON response from OpenAI
+        data = response.json()
+        print(data)
+
+        # Send back the client secret value we received from the OpenAI REST API
+        return JSONResponse(content=data["client_secret"]["value"])
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+
+
+
 
 
 if __name__ == "__main__":
