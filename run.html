@@ -48,17 +48,17 @@
     <button id="startBtn">Start</button>
     <button id="stopBtn" disabled>Stop</button>
     <span id="status">Status: Idle</span>
-    
+
     <audio id="assistantAudio" controls autoplay></audio>
 
     <script>
       let ms = null;
       let pc = null;
-    
+
       async function startAssistant(Language, Accent, UserPrompt) {
         document.getElementById("stopBtn").disabled = false;
         document.getElementById("startBtn").disabled = true;
-    
+
         try {
           let prompt = `
     You are an elite real‑time conversational voice assistant, designed for clarity and expressiveness.
@@ -66,55 +66,76 @@
     • Accent: Embrace the full character of a ${Accent} accent—honoring its unique phonetics, rhythm, and intonation.
     • Instruction: Listen fully, then engage in a natural, conversational style as you follow the user’s request: ${UserPrompt}.
     `;
-    
-          const tokenResponse = await fetch("https://twilloboss.onrender.com/session", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt }),
-          });
-    
-          if (!tokenResponse.ok) throw new Error("Failed to retrieve ephemeral key");
-    
+
+          const tokenResponse = await fetch(
+            "https://twilloboss.onrender.com/session",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ prompt }),
+            }
+          );
+
+          if (!tokenResponse.ok)
+            throw new Error("Failed to retrieve ephemeral key");
+
           const EPHEMERAL_KEY = await tokenResponse.json();
           pc = new RTCPeerConnection();
-    
+
           const audioEl = document.getElementById("assistantAudio");
-    
+
           pc.ontrack = (e) => {
             console.log("Received audio track");
             audioEl.srcObject = e.streams[0];
           };
-    
+
           ms = await navigator.mediaDevices.getUserMedia({ audio: true });
           pc.addTrack(ms.getTracks()[0]);
-    
+
           const dc = pc.createDataChannel("oai-events");
           dc.addEventListener("message", (e) => {
             console.log("Received event:", e.data);
           });
-    
+
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
-    
-          const sdpResponse = await fetch("https://api.openai.com/v1/realtime", {
-            method: "POST",
-            body: offer.sdp,
-            headers: {
-              Authorization: `Bearer ${EPHEMERAL_KEY}`,
-              "Content-Type": "application/sdp",
-            },
-          });
-    
-          if (!sdpResponse.ok) throw new Error("Failed to establish session with OpenAI");
-    
+
+          const sdpResponse = await fetch(
+            "https://api.openai.com/v1/realtime",
+            {
+              method: "POST",
+              body: offer.sdp,
+              headers: {
+                Authorization: `Bearer ${EPHEMERAL_KEY}`,
+                "Content-Type": "application/sdp",
+              },
+            }
+          );
+
+          if (!sdpResponse.ok)
+            throw new Error("Failed to establish session with OpenAI");
+
           const answer = {
             type: "answer",
             sdp: await sdpResponse.text(),
           };
-    
+
           await pc.setRemoteDescription(answer);
           console.log("Session established!");
-    
+
+          dc.addEventListener("open", () => {
+            console.log("Data channel is open — sending greeting...");
+            dc.send(
+              JSON.stringify({
+                type: "response.create",
+                response: {
+                  instructions:
+                    "Say: Hello, this is Brandy. How can I help you today?",
+                },
+              })
+            );
+          });
+
           window.addEventListener("beforeunload", () => {
             ms.getTracks().forEach((track) => track.stop());
             pc.close();
@@ -124,7 +145,7 @@
           alert("Error: " + error.message);
         }
       }
-    
+
       function stopAssistant() {
         if (ms) {
           ms.getTracks().forEach((track) => track.stop());
@@ -138,23 +159,24 @@
         document.getElementById("stopBtn").disabled = true;
         document.getElementById("startBtn").disabled = false;
       }
-    
+
       document.getElementById("stopBtn").addEventListener("click", () => {
         stopAssistant();
       });
-    
+
       window.addEventListener("beforeunload", () => {
         stopAssistant();
       });
-    
-      document.getElementById("startBtn").addEventListener("click", async () => {
-        const language = document.getElementById("language").value;
-        const accent = document.getElementById("accent").value;
-        const userPrompt = document.getElementById("userPrompt").value;
-    
-        await startAssistant(language, accent, userPrompt);
-      });
+
+      document
+        .getElementById("startBtn")
+        .addEventListener("click", async () => {
+          const language = document.getElementById("language").value;
+          const accent = document.getElementById("accent").value;
+          const userPrompt = document.getElementById("userPrompt").value;
+
+          await startAssistant(language, accent, userPrompt);
+        });
     </script>
-    
   </body>
 </html>

@@ -180,6 +180,12 @@ async def handle_media_stream(websock: WebSocket, call_id: str = None):
             try:
                 async for message in websock.iter_text():
                     data = json.loads(message)
+                    if data["event"] == "stop":
+                            print("Twilio call terminated")
+                            if openai_ws.open:
+                                await openai_ws.close()
+                            await websock.close(code=1000, reason="Call terminated")
+                            return
                     if data["event"] == "media" and openai_ws.open:
                         latest_media_timestamp = int(data["media"]["timestamp"])
                         audio_append = {
@@ -198,6 +204,8 @@ async def handle_media_stream(websock: WebSocket, call_id: str = None):
                             mark_queue.pop(0)
             except WebSocketDisconnect:
                 print("Client disconnected.")
+                await websock.close(code=1000, reason="Call terminated")
+
                 if openai_ws.open:
                     await openai_ws.close()
 
@@ -243,6 +251,8 @@ async def handle_media_stream(websock: WebSocket, call_id: str = None):
                             )
                             await handle_speech_started_event()
             except Exception as e:
+                await websock.close(code=1000, reason="Call terminated")
+
                 print(f"Error in send_to_twilio: {e}")
 
         async def handle_speech_started_event():

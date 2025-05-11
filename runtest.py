@@ -1,33 +1,42 @@
-import asyncio
-import websockets
-import json
-import logging
+import requests
+import jwt
+import time
 import os
+from dotenv import load_dotenv
 
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+# Load from .env file
+load_dotenv()
 
-async def open_websocket_session():
-    url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01"
-    headers = {"Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}", "OpenAI-Beta": "realtime=v1"}
+application_id = os.getenv("VONAGE_APPLICATION_ID")
+private_key_path = os.getenv("VONAGE_PRIVATE_KEY_PATH")
 
-    try:
-        async with websockets.connect(url, extra_headers=headers) as websocket:
-            logger.info("Connected to server.")
-            # Listen for incoming messages
-            while True:
-                message = await websocket.recv()
-                parsed_message = json.loads(message)
-                logger.info(f"Received message: {parsed_message}")
+# Read private key
+with open(private_key_path, "r") as key_file:
+    private_key = key_file.read()
 
-                # Process the message as needed
+# Create JWT
+token = jwt.encode({
+    "application_id": application_id,
+    "iat": int(time.time()),
+    "exp": int(time.time()) + 60 * 60,
+    "jti": "auth-test-123"
+}, private_key, algorithm="RS256")
 
-    except websockets.exceptions.WebSocketException as e:
-        logger.error(f"WebSocket error: {e}")
-    except Exception as e:
-        logger.error(f"An unexpected error occurred: {e}")
+# Send authenticated GET request to test
+headers = {
+    "Authorization": f"Bearer {token}",
+    "Content-Type": "application/json"
+}
 
-# Run the async function
-if __name__ == "__main__":
-    asyncio.run(open_websocket_session())
+# Hit a safe endpoint that doesn't modify anything
+url = "https://api.nexmo.com/v2/applications"
+
+response = requests.get(url, headers=headers)
+
+# Output result
+if response.status_code == 200:
+    print("✅ Auth is correct! Response:")
+    print(response.json())
+else:
+    print(f"❌ Auth failed with status {response.status_code}")
+    print(response.text)
