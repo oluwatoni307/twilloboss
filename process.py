@@ -80,19 +80,10 @@ class ScheduleCallRequest(BaseModel):
 async def schedule_call(req: ScheduleCallRequest):
     call_id = str(uuid4())
     prompt = f"""
-    You are a helpful call assistant. Respond to the user's query in a natural, conversational manner.
-    
-    IMPORTANT VOICE SETTINGS:
-    - Speak in {req.Language}
-    - Use a {req.Accent} accent
-    
-    USER QUERY: {req.prompt}
-    
-    Guidelines:
-    - Keep responses concise and helpful
-    - Maintain a friendly, professional tone
-    - Use appropriate speech patterns for the specified language and accent
-    - If you don't understand or can't help with the query, politely explain and offer alternatives
+    You are an elite real‑time conversational voice assistant, designed for clarity and expressiveness.
+    • Language: Speak flawlessly in ${req.Language}, with native‑level fluency.
+    • Accent: Embrace the full character of a ${req.Accent} accent—honoring its unique phonetics, rhythm, and intonation.
+    • Instruction: Listen fully, then engage in a natural, conversational style as you follow the user’s request: ${req.prompt}.
     """
     call_prompts[call_id] = prompt
     print(call_prompts)

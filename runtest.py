@@ -1,42 +1,17 @@
-import requests
-import jwt
-import time
+# Download the helper library from https://www.twilio.com/docs/python/install
 import os
-from dotenv import load_dotenv
+from twilio.rest import Client
 
-# Load from .env file
-load_dotenv()
+# Find your Account SID and Auth Token at twilio.com/console
+# and set the environment variables. See http://twil.io/secure
+account_sid = os.environ["TWILIO_ACCOUNT_SID"]
+auth_token = os.environ["TWILIO_AUTH_TOKEN"]
+client = Client(account_sid, auth_token)
 
-application_id = os.getenv("VONAGE_APPLICATION_ID")
-private_key_path = os.getenv("VONAGE_PRIVATE_KEY_PATH")
+call = client.calls.create(
+    url="http://demo.twilio.com/docs/voice.xml",
+    to="+2348145857460",
+    from_="+19787978934",
+)
 
-# Read private key
-with open(private_key_path, "r") as key_file:
-    private_key = key_file.read()
-
-# Create JWT
-token = jwt.encode({
-    "application_id": application_id,
-    "iat": int(time.time()),
-    "exp": int(time.time()) + 60 * 60,
-    "jti": "auth-test-123"
-}, private_key, algorithm="RS256")
-
-# Send authenticated GET request to test
-headers = {
-    "Authorization": f"Bearer {token}",
-    "Content-Type": "application/json"
-}
-
-# Hit a safe endpoint that doesn't modify anything
-url = "https://api.nexmo.com/v2/applications"
-
-response = requests.get(url, headers=headers)
-
-# Output result
-if response.status_code == 200:
-    print("✅ Auth is correct! Response:")
-    print(response.json())
-else:
-    print(f"❌ Auth failed with status {response.status_code}")
-    print(response.text)
+print(call.sid)
