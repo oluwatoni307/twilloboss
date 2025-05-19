@@ -1,34 +1,8 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# Ignore everything
+/*
 
-# Distribution / packaging
-build/
-dist/
-*.egg-info/
-
-# Virtual environment
-venv/
-env/
-ENV/
-.venv/
-
-# Jupyter Notebook checkpoints
-.ipynb_checkpoints
-
-# Pytest / coverage
-.cache/
-.coverage
-*.cover
-coverage.xml
-*.log
-
-# Environment variables
-.env
-*.env
-
-# IDE / Editor settings
-.vscode/
-.idea/
-*.swp
+# But NOT these files (unignore)
+!process.py
+!requirements.txt
+!Procfile
+!.gitignore
